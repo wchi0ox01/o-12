@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการ - ผู้ดูแลระบบ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', 'Kanit', sans-serif; }
+        .loader { border-top-color: #3b82f6; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+    <!-- Main Container -->
+    <div class="container mx-auto p-4 md:p-6">
+        <!-- Header -->
+        <header class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                    <i data-lucide="shield" class="text-white w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold text-gray-700 dark:text-gray-200">ระบบจัดการวิทยาลัย</h1>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm">ส่วนผู้ดูแลระบบ</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <nav class="flex items-center flex-wrap justify-center space-x-1 md:space-x-2 bg-gray-200 dark:bg-gray-700 p-1 rounded-xl">
+                    <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-4 py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow">แดชบอร์ด</button>
+                    <button onclick="switchTab('settings')" id="tab-settings" class="px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">การตั้งค่า</button>
+                </nav>
+                <button onclick="toggleTheme()" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl p-2.5 transition-colors">
+                    <i data-lucide="sun" id="theme-icon-sun" class="hidden w-5 h-5"></i>
+                    <i data-lucide="moon" id="theme-icon-moon" class="hidden w-5 h-5"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dynamic Content Area -->
+        <main id="main-content">
+            <!-- Dashboard Tab -->
+            <div id="content-dashboard" class="space-y-6">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                    <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+                        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300">ภาพรวมการเช็คชื่อ</h2>
+                        <input type="date" id="dashboard-date" class="border rounded-xl p-3 w-full sm:w-auto bg-transparent dark:text-gray-200 dark:border-gray-600">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 text-center">
+                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-2xl shadow-lg">
+                            <h3 class="text-blue-100">ทั้งหมด</h3>
+                            <p id="stat-total" class="text-3xl font-bold">0</p>
+                        </div>
+                        <div class="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-2xl shadow-lg">
+                            <h3 class="text-green-100">มาเรียน</h3>
+                            <p id="stat-present" class="text-3xl font-bold">0</p>
+                        </div>
+                        <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-6 rounded-2xl shadow-lg">
+                            <h3 class="text-yellow-100">มาสาย</h3>
+                            <p id="stat-late" class="text-3xl font-bold">0</p>
+                        </div>
+                        <div class="bg-gradient-to-br from-red-500 to-red-600 text-white p-6 rounded-2xl shadow-lg">
+                            <h3 class="text-red-100">ขาด</h3>
+                            <p id="stat-absent" class="text-3xl font-bold">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Chart Container -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                        <div class="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-2xl">
+                            <h3 class="font-semibold mb-4 text-center text-gray-700 dark:text-gray-300">สรุปการเข้าเรียน</h3>
+                            <div class="max-w-[300px] mx-auto">
+                                <canvas id="attendance-pie-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-2xl">
+                            <h3 class="font-semibold mb-4 text-center text-gray-700 dark:text-gray-300">จำนวนการเช็คชื่อรายชั่วโมง</h3>
+                            <div>
+                                <canvas id="attendance-bar-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                    <h3 class="font-semibold mb-4 text-gray-700 dark:text-gray-300">รายชื่อนักเรียนทั้งหมด</h3>
+                    <div id="student-roster-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2"></div>
+                    <div id="roster-loading" class="text-center py-8">
+                        <div class="loader w-12 h-12 rounded-full border-4 border-gray-200 dark:border-gray-700 mx-auto"></div>
+                        <p class="mt-4 text-gray-600 dark:text-gray-400">กำลังโหลดข้อมูลนักเรียน...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="content-settings" class="hidden">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-lg font-semibold mb-6 text-gray-700 dark:text-gray-300">การตั้งค่าระบบ</h2>
+                    
+                    <!-- Google Apps Script Settings -->
+                    <div class="mb-8">
+                        <h3 class="text-md font-semibold mb-4 text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                            <i data-lucide="settings" class="w-5 h-5"></i>
+                            การตั้งค่า Google Apps Script
+                        </h3>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-2xl">
+                            <div class="mb-4">
+                                <label for="gas-url" class="block font-medium mb-2 text-gray-700 dark:text-gray-300">Google Apps Script URL:</label>
+                                <input type="url" id="gas-url" placeholder="https://script.google.com/macros/s/..." 
+                                       class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-xl p-3 bg-white dark:text-gray-200">
+                            </div>
+                            <button onclick="saveGasUrl()" 
+                                    class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium">
+                                บันทึกการตั้งค่า
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Location Settings -->
+                    <div class="mb-8">
+                        <h3 class="text-md font-semibold mb-4 text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                            <i data-lucide="map-pin" class="w-5 h-5"></i>
+                            การตั้งค่าตำแหน่ง
+                        </h3>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-2xl">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="college-lat" class="block font-medium mb-2 text-gray-700 dark:text-gray-300">ละติจูด:</label>
+                                    <input type="number" id="college-lat" step="any" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-xl p-3 bg-white dark:text-gray-200" value="14.529033">
+                                </div>
+                                <div>
+                                    <label for="college-lng" class="block font-medium mb-2 text-gray-700 dark:text-gray-300">ลองจิจูด:</label>
+                                    <input type="number" id="college-lng" step="any" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-xl p-3 bg-white dark:text-gray-200" value="100.907445">
+                                </div>
+                                <div>
+                                    <label for="college-radius" class="block font-medium mb-2 text-gray-700 dark:text-gray-300">รัศมี (เมตร):</label>
+                                    <input type="number" id="college-radius" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-xl p-3 bg-white dark:text-gray-200" value="50">
+                                </div>
+                            </div>
+                            <button onclick="saveLocationSettings()" 
+                                    class="mt-4 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 font-medium">
+                                บันทึกการตั้งค่าตำแหน่ง
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Time Settings -->
+                    <div>
+                        <h3 class="text-md font-semibold mb-4 text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                            <i data-lucide="clock" class="w-5 h-5"></i>
+                            การตั้งค่าเวลา
+                        </h3>
+                        <div class="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-2xl">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="checkin-start" class="block font-medium mb-2 text-gray-700 dark:text-gray-300">เวลาเริ่มต้น:</label>
+                                    <input type="time" id="checkin-start" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-xl p-3 bg-white dark:text-gray-200" value="06:00">
+                                </div>
+                                <div>
+                                    <label for="checkin-end" class="block font-medium mb-2 text-gray-700 dark:text-gray-300">เวลาสิ้นสุด:</label>
+                                    <input type="time" id="checkin-end" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-xl p-3 bg-white dark:text-gray-200" value="08:30">
+                                </div>
+                            </div>
+                            <button onclick="saveTimeSettings()" 
+                                    class="mt-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-3 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 font-medium">
+                                บันทึกการตั้งค่าเวลา
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- GLOBAL STATE & CONFIG ---
+        const GAS_URL_KEY = 'gasWebAppUrl';
+        const LOCATION_SETTINGS_KEY = 'locationSettings';
+        const TIME_SETTINGS_KEY = 'timeSettings';
+        
+        let gasWebAppUrl = '';
+        let pieChart, barChart;
+        let students = [];
+        let attendance = [];
+
+        // --- THEME MANAGEMENT ---
+        function applyTheme(theme) {
+            const chartTextColor = theme === 'dark' ? 'rgba(229, 231, 235, 0.8)' : 'rgba(55, 65, 81, 0.9)';
+            const chartGridColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.5)' : 'rgba(209, 213, 219, 0.5)';
+            
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                document.getElementById('theme-icon-sun').classList.remove('hidden');
+                document.getElementById('theme-icon-moon').classList.add('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('theme-icon-sun').classList.add('hidden');
+                document.getElementById('theme-icon-moon').classList.remove('hidden');
+            }
+            
+            Chart.defaults.color = chartTextColor;
+            Chart.defaults.borderColor = chartGridColor;
+            
+            if (pieChart || barChart) {
+                renderDashboard();
+            }
+            
+            lucide.createIcons();
+        }
+
+        function toggleTheme() {
+            const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        }
+
+        // --- INITIALIZATION ---
+        window.onload = async () => {
+            lucide.createIcons();
+            
+            // ตั้งค่า theme
+            const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            applyTheme(savedTheme);
+            
+            // โหลดการตั้งค่า
+            loadSettings();
+            
+            document.getElementById('dashboard-date').valueAsDate = new Date();
+            document.getElementById('dashboard-date').addEventListener('change', () => { 
+                loadAttendanceDataForDashboard(); 
+            });
+            
+            // โหลดข้อมูลเริ่มต้น
+            loadStudentRosterForDashboard();
+            loadAttendanceDataForDashboard();
+        };
+
+        // --- SETTINGS MANAGEMENT ---
+        function loadSettings() {
+            // โหลด GAS URL
+            gasWebAppUrl = localStorage.getItem(GAS_URL_KEY) || '';
+            document.getElementById('gas-url').value = gasWebAppUrl;
+            
+            // โหลดการตั้งค่าตำแหน่ง
+            const locationSettings = JSON.parse(localStorage.getItem(LOCATION_SETTINGS_KEY) || '{}');
+            document.getElementById('college-lat').value = locationSettings.lat || '14.529033';
+            document.getElementById('college-lng').value = locationSettings.lng || '100.907445';
+            document.getElementById('college-radius').value = locationSettings.radius || '50';
+            
+            // โหลดการตั้งค่าเวลา
+            const timeSettings = JSON.parse(localStorage.getItem(TIME_SETTINGS_KEY) || '{}');
+            document.getElementById('checkin-start').value = timeSettings.start || '06:00';
+            document.getElementById('checkin-end').value = timeSettings.end || '08:30';
+        }
+
+        function saveGasUrl() {
+            const url = document.getElementById('gas-url').value.trim();
+            if (url) {
+                localStorage.setItem(GAS_URL_KEY, url);
+                gasWebAppUrl = url;
+                alert('บันทึกการตั้งค่า Google Apps Script สำเร็จ');
+            } else {
+                alert('กรุณากรอก URL ให้ถูกต้อง');
+            }
+        }
+
+        function saveLocationSettings() {
+            const locationSettings = {
+                lat: parseFloat(document.getElementById('college-lat').value),
+                lng: parseFloat(document.getElementById('college-lng').value),
+                radius: parseInt(document.getElementById('college-radius').value)
+            };
+            
+            localStorage.setItem(LOCATION_SETTINGS_KEY, JSON.stringify(locationSettings));
+            alert('บันทึกการตั้งค่าตำแหน่งสำเร็จ');
+        }
+
+        function saveTimeSettings() {
+            const timeSettings = {
+                start: document.getElementById('checkin-start').value,
+                end: document.getElementById('checkin-end').value
+            };
+            
+            localStorage.setItem(TIME_SETTINGS_KEY, JSON.stringify(timeSettings));
+            alert('บันทึกการตั้งค่าเวลาสำเร็จ');
+        }
+
+        // --- UI & NAVIGATION ---
+        function switchTab(tabName) {
+            ['dashboard', 'settings'].forEach(name => {
+                document.getElementById(`content-${name}`).classList.add('hidden');
+                document.getElementById(`tab-${name}`).classList.remove('bg-gradient-to-r', 'from-blue-500', 'to-blue-600', 'text-white', 'shadow');
+                document.getElementById(`tab-${name}`).classList.add('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+            });
+            
+            document.getElementById(`content-${tabName}`).classList.remove('hidden');
+            const activeTab = document.getElementById(`tab-${tabName}`);
+            activeTab.classList.add('bg-gradient-to-r', 'from-blue-500', 'to-blue-600', 'text-white', 'shadow');
+            activeTab.classList.remove('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+            
+            if (tabName === 'dashboard') {
+                loadStudentRosterForDashboard();
+                loadAttendanceDataForDashboard();
+            }
+        }
+
+        // --- DASHBOARD FUNCTIONS ---
+        function loadStudentRosterForDashboard() {
+            const rosterGrid = document.getElementById('student-roster-grid');
+            const rosterLoading = document.getElementById('roster-loading');
+            rosterGrid.innerHTML = ''; 
+            rosterLoading.style.display = 'block';
+            
+            // โหลดข้อมูลนักเรียนจาก localStorage
+            students = getAllStudents();
+            
+            if (students.length === 0) {
+                rosterGrid.innerHTML = `<p class="col-span-full text-center text-gray-500 py-8">ยังไม่มีข้อมูลนักเรียนในระบบ</p>`;
+            } else {
+                students.forEach(student => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-gray-50 dark:bg-gray-700/50 p-4 rounded-2xl text-center hover:shadow-md transition-shadow duration-200';
+                    card.innerHTML = `
+                        <img src="${student.imageData || 'https://placehold.co/150x150/e2e8f0/475569?text=No+Image'}" 
+                             class="w-20 h-20 rounded-2xl object-cover mx-auto mb-3 border-2 border-white dark:border-gray-600 shadow">
+                        <p class="font-semibold text-sm truncate text-gray-800 dark:text-gray-200">${student.name}</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">${student.id}</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400">${student.class}</p>
+                    `;
+                    rosterGrid.appendChild(card);
+                });
+            }
+            rosterLoading.style.display = 'none';
+        }
+
+        function getAllStudents() {
+            // ในระบบจริงจะดึงข้อมูลจาก Google Sheets
+            // ตัวอย่างข้อมูลสำหรับการทดสอบ
+            const demoStudents = [
+                { id: '65010001', name: 'สมชาย ใจดี', class: 'ปวช.1/1', imageData: '' },
+                { id: '65010002', name: 'สุนิสา วัฒนา', class: 'ปวช.1/1', imageData: '' },
+                { id: '65010003', name: 'อนุชา ศรีสุข', class: 'ปวช.1/2', imageData: '' },
+                { id: '65020001', name: 'พัชราภรณ์ เก่งดี', class: 'ปวส.2/1', imageData: '' }
+            ];
+            
+            return demoStudents;
+        }
+
+        function getAllAttendance() {
+            return JSON.parse(localStorage.getItem('attendanceData') || '{}');
+        }
+
+        function loadAttendanceDataForDashboard() {
+            const attendanceData = getAllAttendance();
+            const selectedDate = new Date(document.getElementById('dashboard-date').value);
+            const dateString = selectedDate.toDateString();
+            
+            // แปลงข้อมูลการเช็คชื่อ
+            attendance = [];
+            if (attendanceData[dateString]) {
+                Object.values(attendanceData[dateString]).forEach(record => {
+                    attendance.push({
+                        id: record.name,
+                        name: record.name,
+                        class: record.class,
+                        timestamp: new Date(record.timestamp),
+                        status: record.status || 'มาเรียน'
+                    });
+                });
+            }
+            
+            renderDashboard();
+        }
+
+        function renderDashboard() {
+            const selectedDate = new Date(document.getElementById('dashboard-date').value);
+            selectedDate.setHours(0,0,0,0);
+            
+            const attendanceToday = attendance.filter(rec => {
+                const recDate = new Date(rec.timestamp);
+                recDate.setHours(0,0,0,0);
+                return recDate.getTime() === selectedDate.getTime();
+            });
+            
+            let presentCount = 0, lateCount = 0;
+            const hourlyCounts = Array(24).fill(0);
+            const presentStudents = new Set();
+            
+            attendanceToday.forEach(rec => {
+                if (rec.status === 'มาเรียน' || rec.status === 'มาสาย') {
+                    if (!presentStudents.has(rec.id)) {
+                        if (rec.status === 'มาสาย') {
+                            lateCount++;
+                        } else {
+                            presentCount++;
+                        }
+                    }
+                    presentStudents.add(rec.id);
+                }
+                hourlyCounts[rec.timestamp.getHours()]++;
+            });
+            
+            const totalStudents = students.length;
+            const absentCount = totalStudents - (presentCount + lateCount);
+            
+            document.getElementById('stat-total').innerText = totalStudents;
+            document.getElementById('stat-present').innerText = presentCount;
+            document.getElementById('stat-late').innerText = lateCount;
+            document.getElementById('stat-absent').innerText = Math.max(0, absentCount);
+            
+            renderPieChart(presentCount, lateCount, Math.max(0, absentCount));
+            renderBarChart(hourlyCounts);
+        }
+
+        function renderPieChart(present, late, absent) {
+            const pieCanvas = document.getElementById('attendance-pie-chart');
+            if (!pieCanvas) return;
+            
+            const ctx = pieCanvas.getContext('2d');
+            if(pieChart) pieChart.destroy();
+            
+            const total = present + late + absent;
+            if (total === 0) { 
+                ctx.clearRect(0, 0, pieCanvas.width, pieCanvas.height);
+                
+                // แสดงข้อความเมื่อไม่มีข้อมูล
+                ctx.fillStyle = Chart.defaults.color;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = '16px Arial';
+                ctx.fillText('ไม่มีข้อมูล', pieCanvas.width/2, pieCanvas.height/2);
+                return; 
+            }
+            
+            pieChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['มาเรียน', 'มาสาย', 'ขาด'],
+                    datasets: [{
+                        data: [present, late, absent],
+                        backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderBarChart(hourlyData) {
+            const barCanvas = document.getElementById('attendance-bar-chart');
+            if (!barCanvas) return;
+            
+            const ctx = barCanvas.getContext('2d');
+            if(barChart) barChart.destroy();
+            
+            // สร้าง labels สำหรับเวลา 6:00-18:00
+            const labels = Array.from({length: 13}, (_, i) => {
+                const hour = i + 6;
+                return `${hour}:00`;
+            });
+            
+            // ข้อมูลสำหรับเวลา 6:00-18:00
+            const data = hourlyData.slice(6, 19);
+            
+            barChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'จำนวนการเช็คชื่อ',
+                        data: data,
+                        backgroundColor: '#3B82F6',
+                        borderColor: '#2563EB',
+                        borderWidth: 1,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            },
+                            grid: {
+                                color: Chart.defaults.borderColor
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: Chart.defaults.borderColor
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
